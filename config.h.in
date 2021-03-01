@@ -1,0 +1,8 @@
+#pragma once
+
+#include <string>
+
+const std::wstring install_prefix()
+{
+    return L"@CMAKE_INSTALL_PREFIX@";
+}

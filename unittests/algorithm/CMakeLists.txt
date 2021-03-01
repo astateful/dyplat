@@ -1,0 +1,1 @@
+astateful_add_test( algorithm )

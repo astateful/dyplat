@@ -1,0 +1,8 @@
+astateful_add_test( script )
+astateful_target_test( script )
+find_package( LLVM REQUIRED CONFIG )
+add_definitions( ${LLVM_DEFINITIONS} )
+include_directories( ${LLVM_INCLUDE_DIRS} )
+llvm_map_components_to_libnames( llvm_libs all )
+target_link_libraries( scriptTests ${llvm_libs} )
+target_link_libraries( scriptTests Shlwapi.lib )

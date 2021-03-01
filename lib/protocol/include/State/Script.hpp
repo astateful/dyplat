@@ -1,0 +1,67 @@
+//! The MIT License (MIT)
+//!
+//! Copyright (c) 2014 Thomas Kovacs
+//!
+//! Permission is hereby granted, free of charge, to any person obtaining a
+//! copy of this software and associated documentation files (the "Software"),
+//! to deal in the Software without restriction, including without limitation
+//! the rights to use, copy, modify, merge, publish, distribute, sublicense,
+//! and / or sell copies of the Software, and to permit persons to whom the
+//! Software is furnished to do so, subject to the following conditions :
+//!
+//! The above copyright notice and this permission notice shall be included in
+//! all copies or substantial portions of the Software.
+//!
+//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//! FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+//! DEALINGS IN THE SOFTWARE.
+#pragma once
+
+#include "astateful/script/Context.hpp"
+#include "astateful/script/JIT.hpp"
+#include "astateful/algorithm/State.hpp"
+
+namespace astateful {
+namespace protocol {
+  //! This state is used as a base state for states which base their output on
+  //! the results of llvm.
+  template <typename U, typename V> struct StateScript : public algorithm::State<U, V> {
+    //! constructor
+    //!
+    //! @param script_path The path to the directory containing LLVM sources.
+    //! @param cache_path The path to the persistence layer used for caching.
+    //! @param file_name The name of the file to use for source and caching.
+    //!
+    StateScript( const std::string& script_path,
+                 const std::string& cache_path,
+                 const std::string& file_name ) :
+      m_context(),
+      m_jit( script::generate_jit( m_context,
+      file_name,
+      cache_path,
+      script_path ) ),
+      algorithm::State<U, V>() {
+      FPtr = m_jit.getPointerToFunction( m_jit.getFunction( "iter" ) );
+    }
+
+    //! Return a new unknown based on the flux index as well as the values
+    //! provided by the given value map.
+    //!
+    std::unique_ptr<U> operator()( const algorithm::value_t<U, V>&,
+                                   const V& ) const override;
+  private:
+    //!
+    script::Context m_context;
+
+    //!
+    script::JIT m_jit;
+
+    //!
+    void * FPtr;
+  };
+}
+}

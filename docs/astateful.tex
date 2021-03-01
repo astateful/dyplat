@@ -1,0 +1,452 @@
+ \documentclass[11pt,twocolumn]{article}
+\usepackage{multirow}
+\usepackage[left=2.54cm,top=2.54cm,right=2.54cm]{geometry}
+\usepackage[all]{xy}
+\usepackage{vaucanson-g}
+
+\begin{document}
+\title{Dynamic Programming Architecture for Web Applications}
+\author{Thomas Kovacs\\
+  Eggenberger Alle 66 /3,\\
+  Graz,\\
+  Oesterreich,\\
+  8200\\
+  \texttt{thomas.george.kovacs@hushmail.com}}
+\date{\today}
+\maketitle
+\begin{center}
+\section*{Abstract}
+\end{center}
+\paragraph{Introduction}
+Developers will often use an architecture to handle content display based on user input. Furthermore, developers will often constrain their architectures along a model-view type environment. This constraint allows for a clean separation between business logic and presentation logic. Yet with this constraint in place comes the challenge of having these separate logical divisions, or layers, function as a whole and communicate effectively with each other.
+\paragraph{Paradigm Shift}
+astateful, the name of the ideas within this paper, presents a more general way to develop and maintain the various layers that govern a web application. The developer shifts away from thinking about how the business and presentation logic of the web application interact, to the overall state of the web application and how it functions as a whole.
+\paragraph{Approach}
+The astateful approach uses principles from Dynamic Programming to govern how the web application is both developed and displayed. The traditional constraints cease to exist. In their places the programmer defines the web application across a series of states, with the idea being that each state takes on a user inputted action. The developer then defines dependencies between the states, termed variables, in order to create an optimal substructure. This substructure is then evaluated using two approaches familar to Dynamic Programming: the bottom up approach and the top down approach \cite{dp}.
+\paragraph{Conclusion}
+This paper will begin with an introduction, in which the requirements and definitions for understanding the concepts will be made, and an overview which examines the challenges facing web applications. Next, the theory is discussed and examples are provided. The paper concludes with ideas for possible enhancements, drawbacks and future hopes for this new method.
+
+\newpage
+\tableofcontents
+
+\newpage
+\part{Introduction}
+
+\section{Requirements}
+\subsection{Linear Algebra}
+A background in basic linear algebra including knowledge of matricies, vectors, matrix-vector manipulation, linear operator notation, etc. is helpful for understanding several analogies in this paper. 
+\subsection{Computer Science}
+Concepts from Dynamic Programming and Combinatorics are useful in understanding the evaluation methods. Basic programming principles such as loops and recursion will aid in understanding the pseudo code sections and further implementation specific details.
+\subsection{Internet}
+Knowledge of popular architectures and design patterns used in designing web applications is recommended. Familiarity with web-centric languages such as PHP, Python, and Perl is wonderful as well if one were to begin thinking about implementation details.
+
+\section{Definitions}
+\subsection{State}
+A state operates on variables. Adding a new state corresponds to adding an extra dimension to the web application. States are used to group related functionality that improves the web application. Typically a state will export variables related to its functionality. Examples of states are StateItem, StateExec, StateId, StateSecure, etc.
+
+\subsection{Action}
+An action changes the value of a state. It tells the state how to use an imported variable or populate an exported variable. Actions are similar to coordinates in mathematics. As an example, StateItem can have actions News, Reviews, Editorials, etc. StateExec can have actions View, Edit, Add, Delete, etc.
+
+\subsection{Variable}
+A variable is an implementation-dependent data structure passed between states that is populated based on the value of an action for a given state. A variable is exported by one state and imported by another state. If a variable is being imported, it should not be modified. For example, StateExec may need a variable called 'language', which is exported by StateLanguage and is populated with 'en' based on action English' or 'de' based on language 'German'. Not all variables are needed by all states all the time.
+
+\subsection{State-Action Pair}
+A state-action pair refers to a specific state and a specific action that when combined produce output for a specific variable. Variables have different data based upon the various state/action pairings that are allowed. An example would be (StateExec, View) or (StateItem, News).
+
+\subsection{State Vector}
+A state vector is an ordered list of unique actions with each action corresponding to a single state. This is a 1-1 correspondance. For example, view/news/1 would map to StateExec/StateItem/StateId. The state vector governs population of the variables since it defines the substructure for the evaluation methods. For example, if 'en' is not included in the state vector, StateLanguage will not be visited, and consequently the variable 'language' will not be populated, which could result in an evaluation failure. The fix would be to request view/news/1/en.
+
+\subsection{Initial-Final State}
+The initial-final state is the state that astateful populates all the imported variables for. The initial-final state is only allowed to import variables, not export them. Each evaluation method visits this state only once. When using the top down approach, it is the initial state since it is executed first, and when using the bottom up approach it is the final state since it is executed last. The intial-final state, which is also declared as StateExec, is allowed to provide output to the screen. It contains all variables needed to display this output correctly. It provides the fundamental basis for the substructure and will be discussed in further detail.
+
+\subsection{Evaluator}
+An evaluator is an algorithm that given as input an initial-final state, walks through all other states in order to populate all imported variables defined by the initial-final state.  The two evaluators used are labelled top down and bottom up, corresponding to concepts from Dynamic Programming. Top down uses a recursive based approach, while bottom up uses an iterative approach. A third evaluator named Linear can be used based on the results from either of the previous two to provide linear lookup time of the variables and thus increase the speed of the web application dramatically.
+
+\newpage
+\part{Overview}
+
+\section{Themes}
+This paper will now examine some problems common to web applications and how the astateful approach solves the challenges facing these web applications.
+\subsection{Input Sanitization}
+\subsubsection{Challenge}
+Web architectures introduce input from a wide variety of sources including client information such as the URL, and server information such as form, request, and session data. Input, especially from the URL, is typically difficult to sanitize natively.
+\subsubsection{Solution}
+In astateful, all URL information is validated by default since it uses regular expressions to match the actions to the states. Additional states can be created that bind specifically to POST or GET data and export and santize those variables automatically.
+\subsection{Navigation}
+\subsubsection{Challenge}
+Many architectures define a navigation path to use when accessing the web application. Examples are /view/page, or page?id=1 or even a combination of both. Navigation patterns are usually predefined and are typically binded strongly to code, thus creating an overly strict environment for the programmer and for URL creation.
+\subsubsection{Solution}
+Navigation paths are very loose in astateful. The state vector is defined as an array containing actions. Since each action is mapped uniquely to a state, the actions can be in any order the user wishes. The evaluators will produce the exact same output and will visit the variables in the same order. The result is a very flexible navigation layout.
+\subsection{Scalablity}
+\subsubsection{Challenge}
+Architectures need to create open endedness to allow the web application to scale, but at the same time ensure that the opendedness is general enough to account for all future features.
+\subsubsection{Solution}
+The generalized nature of astateful is due to the principles it inherites from Dynamic Programming. Scalablity is as simple as adding a new state or defining additional actions within an existing state. Adding a new state also corresponds to adding onto the existing substructure. The additional subproblems created by this state are solved using one the evaluation methods available. The same approach is taken to solve any additional problems.
+\subsection{Speed}
+\subsubsection{Challenge}
+Speed is a crucial factor in any architecture, but is usually very hard to measure directly. Furthermore, many architectures come with pre-existing functionality, such as database engines, extra language support, modules, plugins, etc. which may be slow to begin with.
+\subsubsection{Solution}
+The speed of astateful is dependent upon both the evaluation methods and complexity of the web application. The top down method is a recursive based approach and should generally be avoided. The bottom up method is an iterative based approach that requires a \emph{magic number} for the number of iterations that need to be performed over the states to get the required variables. Lastly, the linear evaluation routine speeds up the web application dramatically since it uses the variable list generated from the either of the previous two algorithms to perform a linear lookup.
+\section{Conclusions}
+This paper surveyed the various challenges facing web architectures and the astateful approach to solving these challenges. Scalabilty and speed are the strengths of astateful: scalability due to the Dynamic Programming approach and speed due to adeptness of the algorithms used in the evaluations.
+
+\newpage
+\part{Dynamic Programming}
+\section{Introduction}
+\subsection{Problem}
+The original problem that astateful solves can be summarized as follows: Given any number of states designed to handle various aspects of a web application (security, database, content, etc...), how can one combine these states to produce output?
+\subsection{Solution}
+One way to combine the states is to connect them to each other. Connecting the states would then allow them to be traversed. In astateful, this connection is defined as a dependency. Each state, either directly or indirectly, is provided as a dependency for the inital-final state. Recalling the earlier definition of the initial-final state, it is the only state which can provide web application output.
+\paragraph{Proposition 1}
+For any state to exist within an astateful web application, it must become a dependency for the initial-final state either directly or as a dependency for another state, which would make it an indirect dependency for the initial-final state.
+\paragraph{Proposition 2}
+Recall that dependencies between states are defined by the variables that are imported and exported by them. Combining this definition with Proposition 1, astateful proposes that output of a web application is dependent only upon all imported variables of the initial-final state.
+\subsection{Structure}
+Two key Dynamic Programming concepts arise which are critical to the output of the initial-final state: optimal substructure and overlapping subproblems \cite{dp}. These two concepts arise naturally from the structure that has been defined from the previous two prepositions. This paper requires that these two pillars be discussed in detail in order to create a solid theoretical foundation for the implementation of the algorithms.
+\subsubsection{Optimal Substructure}
+In the context of astateful, optimal substructure is created by defining recursion (or dependencies) of one state on another state. If a state exports variables, and does not import any, there are no further problems to solve. If the state imports variables, those variables that are being imported must be solved for. The solution involves finding which other state exports those variables that are being imported and solving for them, thus creating the recursive structure. The solution to these variables requires the use of overlapping subproblems.
+\subsubsection{Overlapping Subproblems}
+\paragraph{Circular Dependency Problem}
+The number of overlapping subproblems decreases as the variables are solved for. This is because there have to be some states which only export variables and do not import any. If an application consisted entirey of states which imported and exported variables, but never only exported variables, astateful would continue to generate an infinite number of subproblems.
+\paragraph{Proposition 3}
+It is required that the web application contain "terminating states" that only export variables. This constraint allows the number of overlapping subproblems to decrease as variables are solved since no new subproblems are being generated.
+\paragraph{Conclusion}
+Since astateful solves for a variable once and stores the result, the same subproblem is not solved for again when the same variable is encountered. Optimal substructure allows each of the evaluation methods to repeatedly apply the same process to solve for as many variables as needed.
+
+\section{Evaluation}
+The combination of the overlapping subproblems and the optimal substructure allows one to use one of the two evaluation methods available to solve for all variables required by the initial-final state. By Proposition 2, once all variables of the initial-final state are solved for, the intiial-final state will produce output.
+\subsection{Top Down}
+\subsubsection{Introduction}
+The top down method is the most natural way to think of evaluating the substructure. One begins with the initial-final state and lists all imported variables first since the initial-final state never exports any variables (doing so would violate Proposition 1). Then each state is searched to see if it exports a variable in the list. If state "A" exports this variable, a check is done to see if state "A" has any dependencies. If not, the variable is populated and thus solved for. If state "A" has dependencies, then the evaluation method calls itself recursively with state "A" as input. The recursion terminates at various terminating states, i.e. states that only export variables.
+
+\subsubsection{Outline}
+\begin{small}
+\begin{verbatim}
+void Main (& inputState) {
+  foreach states as state {
+    if state equals inputState or number of export vars by state is 0
+      continue
+
+    foreach var in inputState {
+      foreach lvar in state {
+        if var == lvar and lvar is exported and var is imported {
+          if var is not memoized {
+            if state has exported variables and lvar has no dependencies {
+              Main(&state)
+            }
+            state.Exec(&var)
+            memoize var
+          } else {
+            populate inputState with memoize var
+          }
+        }
+      }
+    }
+  }
+}
+\end{verbatim}
+\end{small}
+
+\subsubsection{Advantages}
+\paragraph{Natural}
+The top down method is the easiest way to understand the Dynamic Programming approach due to its use of recursion. It also requires less code than the bottom up method.
+\subsubsection{Disadvantages}
+\paragraph{Complexity}
+This method is more computationally complex than an iterative based approach due to use of recursion. At a large enough depth the resulting implementation may run into compuational restrictions regarding stack space.
+
+\subsection{Bottom Up}
+\subsubsection{Introduction}
+The bottom up method is less intuitive than the top down method, but is perhaps more efficient since it uses an iterative based approach. The initial-final state is treated as the final state. Using Proposition 3, states are searched in order that states which only export variables, and do not import variables, are considered first. Once these "independent variables" are solved and stored in the lookup table, then further states which require these variables as imports will have them populated from the lookup table, and can then export their own variables properly. This process continues up until the intial-final state. The intial-final state should then have all its imported variables populated in order to produce output.
+
+\subsubsection{Pseudo Code}
+\begin{small}
+\begin{verbatim}
+void main(& rExecState)
+  while less than magic number {
+    foreach states as state {
+      if number of imported vars in state is 0 {
+        PushVars(&state);
+      end if
+
+      all_imports_found = true
+      foreach var in state {
+        if var is import continue
+        if var is in memoized {
+          populate state var with memoized var
+          continue;
+        }
+
+        foreach states as lstate {
+          if lstate contains var) {
+            lvar is poulated with var from lstate
+            if lvar is exported and has no dependency {
+              lstate.Exec(&var)
+              populate lstate with var
+              break
+            }
+          }
+        }
+
+        if var was not memoized { all_imports_found = false }
+      }
+
+      if all_pulled_found { PushVars(&lstate); }
+    }
+
+    exec_vars_found = true
+    foreach var in rExecState {
+      if var not memoized exec_vars_found = false
+    }
+
+    if exec_vars_found break
+  }
+
+  for var in rExecState {
+    if var is export continue
+    if var is memoized {
+      populate rExecState with memoized var
+  }
+}
+
+void PushVars(rState) {
+  for var in rState {
+    if var is imported then continue
+    rState.Exec(&var)
+    populate rState with memoized var
+  }
+}
+\end{verbatim}
+\end{small}
+
+\subsubsection{Advantages}
+\paragraph{Complexity}
+Due to  its iterative-based approach this method is less computationally complex since it does not require the use of recursion, thereby avoiding stack space restrictions.
+\subsubsection{Disadvantages}
+\paragraph{Speed}
+There is a performance loss since one must first search for the states which only export variables and do not import variables. There are simply more instructions to execute and much more iteration that occurs.
+
+\subsection{Linear}
+\subsubsection{Introduction}
+While the previous two methods will evaluate all imported variables for the initial-final state, there is yet another optimization that can be made. During each of the two evaluations, the name of each variable, along with the name of the state that populates it, is written to a file as well as stored in the lookup table when it is solved for. Since the variables are used to define dependencies beween the states, the variables will be stored in the proper order as well. Now all astateful needs to do is to iterate through the file. Each variable is then populated by its state in order to solve for all impored variables defined by the initial-final state. astateful introduces a massive speed gain since neither recursion nor nested iteration needs to be used to find the variables again.
+
+\begin{small}
+\begin{verbatim}
+procedure main(rExecState)
+  for i from 0 to number of (variable, state) pairs stored
+    var = line(i, 0)
+    state = line(i, 1)
+
+    ts = state(user defined action for state)
+
+    if ts is not exec state and ts.SetImports())
+      foreach (mVarLookupTable as import_var => import_var_data)
+        if import_var not in ts.mImport
+          ts.mImportVars[import_var] = import_var_data
+        end if
+      end foreach
+      ts.Exec(var)
+      if var not in mVarLookupTable
+        mVarLookupTable[var] = ts.mExportVars[var]
+      end if
+    end if
+  end for
+
+  set imports of rExecState
+  while (list(import_var) = each(rExecState.mImport))
+    if import_var in mVarLookupTable
+      rExecState.mImportVars[import_var] = mVarLookupTable[import_var]
+    end if
+  end while
+end procedure
+\end{verbatim}
+\end{small}
+
+\newpage
+\part{Implementation}
+
+\section{News Application}
+\subsection{Defining States}
+The example will use three states that corresponding to a standard web application. The application should have some security measures in place if it wishes to have a 'Members Only' section. The initial-final state StateExec is always included. Lastly, a StateItem will be included to handle displaying of various items such as News, Editorials, etc.
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{State} \\
+\hline
+1 & Exec \\
+2 & Item \\
+3 & Secure \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection {Defining Actions}
+Now that the states have been chosen, actions must be prescribed to them. StateExec may require actions "View", "Edit", "Add" and "Delete". StateItem may require the actions "News" and "Reviews". Just like with the states, it is important to enumerate the actions to provide greater flexibility for the programmer.
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{Secure} \\
+\hline
+1 & Administrator \\
+2 & Public \\
+\hline
+\end{tabular}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{Item} \\
+\hline
+1 & News \\
+2 & Reviews \\
+\hline
+\end{tabular}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{Exec} \\
+\hline
+1 & View \\
+2 & Edit \\
+3 & Add \\
+4 & Delete \\
+\hline
+\end{tabular}
+\end{center}
+\subsubsection{Regular Expressions}
+The astateful source allows for powerful regular expression matching, introducing the flexibility for the state to match actions either in upper or lower case or as numbers (when defining Infinite States for example).
+
+\begin{verbatim}
+"/^\b[vV]iew\b|\b[lL]ogout\b$/"
+"/^[0-9]+$/"
+\end{verbatim}
+
+\subsection{Defining Variables}
+Now that all the states have been assigned various actions, one can begin to define variables that are imported by other states and exported by other states. The given state-action-pairs provided by the state vector will populate the variables with the correct data.
+\paragraph{Optimizing}
+A user may request a certain combination of state-action pairs in order to produce output. Initially it does not matter the order in which the state/action pairs are requested, since of course astateful does not know what the order should be. Different variables are defined by different (state, action) pairs and it is impossible for the user to know exactly what states operate best with others (i.e. the best way in which to order the states).
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{StateExec} \\
+\hline
+Imports & Exports \\
+\hline
+data &  \\
+secure &  \\
+\hline
+\end{tabular}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{StateItem} \\
+\hline
+Imports & Exports \\
+\hline
+secure &  data\\
+\hline
+\end{tabular}
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{2}{|c|}{StateSecure} \\
+\hline
+Imports & Exports \\
+\hline
+ &  secure\\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Dependecy Graph}
+The variable dependencies are then used to create a state dependency graph, starting from StateExec (A), and progressing to StateItem(B), and finally StateSecure (C).
+\paragraph{Tree Structure?}
+Note that although the substructure is similar to a tree structure, it is not helpful to think of the substructure or dependency graph as a tree structure. Tree structures pose a whole different set of problems that Dynamic Programming is not well suited to solve.
+
+\begin{displaymath}
+    \xymatrix{
+        A \ar[dr] \ar[r] & B \ar[d] \\
+                               & C }
+\end{displaymath}
+
+\subsection{Evaluation}
+\subsubsection{Bottom Up}
+The bottom up method would evaluate C first since it has no dependencies, then evaluate B, then evaluate A. It would not evaluate A before B since A is the initial-state and is thus evaluated last.
+\subsubsection{Top Down}
+Top down would visit A first, but not evaluate it since it has dependencies B and C. Since C has no dependencies it is, like in the bottom up method, evaluated first. If A evaluates C first, it would then evaluate B (but not C afterwards).
+\subsubsection{Linear}
+The developer can then choose, if he or she wishes, to send the results of this log file to the linear evaluation method. The linear evaluation method would be called the \emph{second time} the path is requested (the first request is used to generate the log file), thus bypassing both the top down and bottom up evaluators.
+
+\subsection{Navigation Paths}
+Now that the states, actions, and variables are in place, the next question is, how does the web application display output? This paper does not offer a preferred way to accomplish this task as it is a very implementation specific. Generally URLs take on the form...
+\begin{verbatim}
+http://example.com/view/public/news/1
+\end{verbatim}
+An interesting side effect to astateful is that, if the programmer chooses, the navigation paths can be defined statically or dynamically. If defined statically, the first example holds true. But if defined dynamically, then urls such as...
+
+\begin{verbatim}
+http://example.com/view/1/news/public
+http://example.com/view/1/public/news
+\end{verbatim}
+
+are possible although a little weird!
+
+\subsubsection{StateExec and Implementation}
+As an important implementation consideration, note that action "view" matches "StateExec", the initial-final state. When using URL rewriting, this state has to be "anchored" to ensure that the correct string can be found and passed to the astateful source. i.e. it is not possible to evaluate 
+
+\begin{verbatim}
+http://example.com/1/news/public/view
+http://example.com/1/view/public/news
+\end{verbatim}
+
+since the location of the initial-final state StateExec is constantly changing. However, an input such as 
+
+\begin{verbatim}
+http://example.com?v=1/news/public/view
+\end{verbatim}
+
+places no such restrictions on navigation paths because astateful will find the intial-final state.
+
+\newpage
+\part{Enhancements}
+\section{State-Variable Binding}
+In the current theory, if one state has a dependency on another state, the evaluators will usually include all variables from the dependency state. It may be possible to bind variables to certain states in order to speed up the evaluation.
+\section{Caching}
+A natural consequence of passing these variables, or data structures, between states is that it is easy to include fully transparent caching. Variables can be cached with the state, action, and variable name used to uniquely identify the cached content. Also note that caching does not refer specifically to page output (i.e. HTML/XML); a cached variable may store, for example, a database result containing many rows, other objects, session data, etc.
+\section{Encryption}
+In addition to caching variables, it is also easy to encrypt the cached contents. This is useful for example with user data, in which many users may be accessing content and having unencrypted cache versions could expose personal information..
+\section{Containers}
+One can take a group of states that have similar functionality and combine them into a separate web application. The most obvious example of this would be to have one "astateful" for the main entry point and a second "astateful" to handle AJAX requests. Frameworks such as Zend Framework already incorporate such a feature and astateful is no different in this respect.
+\section{Shadow States}
+An interesting side effect occurs when using state variables with sessions. Since sessions are not modified via the URL, if some actions depend on the session values then this situation becomes problematic. Luckily this problem has an elegant solution, requiring that additional states be created to deal with the session variables, and also to have the state actions modified after the URL entry, but before the evaluation takes place.
+\section{Multithreading}
+A drawback of using iterative programming techniques is that one variable must be solved for first before the next one. A wonderful enhancement would be the ability for astateful to search for multiple variables simultaneously. This area would require significant research and for now is only in the planning stage.
+\section{MVC-Like Separation}
+By design, astateful does not separate the model from the view. The only separation that occurs in the code is what is defined as a variable and how the variables are populated by state-action pairs. Simply assigning one state to a view, one state to a controller, and one state to a model is a potentially very interesting problem that has not been explored yet. More research needs to be done in this area.
+
+\newpage
+\part{Conclusions}
+\section{Disadvantages}
+While astateful offers many advantages in designing applications for the web, there are also may hurdles it faces and potential drawbacks. These challenges are outlined below.
+\subsection{Text Output}
+While astateful provides output, "output" in this case refers to generation of a static page. As browsers move to more mature technologies such as AJAX, it remains to be seen if astateful can successfully adapt its basic premise to suit the asynchronous nature of new browsers. Early indications seem to point to yes, but more research needs to be done in this area.
+\subsection{Variable Mess}
+While the concept of variable interaction between states is nice, "variable hell" can insue if one is not careful about how the variables are being used. Infinite recursion can occur, if for example two states both import and export the same variable.
+\subsection{Black Box Environment}
+Without proper logging it is difficult to follow the complex execution path of the evaluation methods. Usually it is best to let the algorithm 'do its job' but debugging is generally more difficult. Consequently there is a very steep learning curve in programming this way since it is also quite awkward.
+\subsection{Improper Navigation}
+When specifying a state vector like View/News/1, it is not advisable to have an action that contains the delimiter (in this case "/") since a state would match incorrectly to an action. So say there is StateFile which takes as input file paths; there is a problem if one inputs /View/News/home/astateful/path/file. An alternative could be /View/News/*home/~astateful/path/file* but this is not really elegant.
+\section{Summary}
+astateful is an alternative approach to web development. Hopefully the ideas presented in this paper can serve as a starting point for further research into what astateful is and is not capable of. This paper hopes that the astateful method of web application development can be explored and utilised to its fullest extent.
+
+\newpage
+\part{Bibliography}
+\begin{thebibliography}{9}
+
+	\bibitem{bellman57}
+	  Richard Bellman,
+	  \emph{Dynamic Programming}.
+	   Princeton University Press, Princeton, NJ,
+	   Republished 2003: Dover, ISBN 0486428095.
+
+          \bibitem{dp}
+http://en.wikipedia.org/wiki/Dynamic\_programming
+
+\end{thebibliography}
+
+\end{document}
